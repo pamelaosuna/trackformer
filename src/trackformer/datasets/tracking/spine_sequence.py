@@ -19,11 +19,22 @@ from torch.utils.data import Dataset
 from ..coco import make_coco_transforms
 from ..transforms import Compose
 
-
+class SequenceHelper:
+    @staticmethod
+    def get_sequence_names(annotation_filepath: str):
+        """
+        Read the JSON annotation file and return all sequences defined in there
+        Params:
+            annotation_filename     The annotation file
+        """
+        with open(annotation_filepath) as f:
+            content = json.load(f)
+        return content['sequences']
+        
 class SpineSequence(Dataset):
     """SpineSequence, Custom Spine Dataset.
     """
-    data_folder = 'spine'
+    data_folder = os.getenv('DATASET') if os.getenv('DATASET') else 'spine' 
 
     def __init__(self, root_dir: str = 'data', seq_name: Optional[str] = None, 
                  vis_threshold: float = 0.0, img_transform: Namespace = None) -> None:
@@ -40,8 +51,8 @@ class SpineSequence(Dataset):
 
         self._data_dir = osp.join(root_dir, self.data_folder)
 
-        self._train_seqs = ['aid052N1D1_tp1_stack1']
-        self._val_seqs = ['aid052N1D1_tp1_stack2']
+        self._train_seqs = SequenceHelper.get_sequence_names(f"{self._data_dir}/annotations/train.json")
+        self._val_seqs = SequenceHelper.get_sequence_names(f"{self._data_dir}/annotations/val.json")
 
         self.transforms = Compose(make_coco_transforms('val', img_transform, overflow_boxes=True))
         self.data = []
@@ -58,10 +69,9 @@ class SpineSequence(Dataset):
         # print(f'LEN annotations: {len(self.annotations)}')
         
         self.data = self._sequence()
-        print(f'DATA LEN: {len(self.data)}')
-        print(f'DATA: {self.data}')
 
         self.no_gt = not osp.exists(self.get_gt_file_path())
+        print("CREATED", seq_name, self._seq_name, "I", len(self.images), "A", len(self.annotations))
 
     def __len__(self) -> int:
         return len(self.data)
@@ -78,6 +88,7 @@ class SpineSequence(Dataset):
         sample = {}
         sample['img'] = img
         # sample['dets'] = torch.tensor([det[:4] for det in data['dets']])
+        sample['dets'] = torch.empty((0,4))
         sample['img_path'] = data['im_path']
         sample['gt'] = data['gt']
         sample['vis'] = data['vis']
@@ -85,6 +96,9 @@ class SpineSequence(Dataset):
         sample['size'] = torch.as_tensor([int(height), int(width)])
 
         return sample
+
+    def __str__(self):
+        return f"Sequence: {self._seq_name}, length: {len(self.data)}, images: {len(self.images)}, annotations: {len(self.annotations)}"
 
     def _sequence(self) -> dict:
         total = []
@@ -133,28 +147,28 @@ class SpineSequence(Dataset):
             frame_id = int(metadata['frame_id'])
             img_ids[frame_id] = metadata['file_name']
         
-        print(f'IMG_IDS: {img_ids}')
-        
         return img_ids
 
     def get_track_boxes_and_visibility(self) -> Tuple[dict, dict]:
         """ Load ground truth boxes and their visibility."""
         boxes = {}
         visibility = {}
+        image_ids = []
 
         for i in range(self.seq_length):
             boxes[i] = {}
             visibility[i] = {}
         
         for annot in self.annotations:
+            image_id = int(annot['image_id'])
+            if image_id not in image_ids:
+                image_ids.append(image_id)
             xywh = annot['bbox'] 
-            frame_id = int(annot['image_id'])
+            frame_id = image_ids.index(image_id)
             track_id = int(annot['track_id'])
             
             boxes[frame_id][track_id] = np.array([xywh[0], xywh[1], xywh[0]+xywh[2]-1, xywh[1]+xywh[3]-1], dtype=np.float32)
             visibility[frame_id][track_id] = float(annot['visibility'] )
-        
-        print(f'BOXES: {boxes}')
         
         return boxes, visibility
 
@@ -244,9 +258,8 @@ class SpineWrapper(Dataset):
         split -- the split of the dataset to use
         kwargs -- kwargs for the MOT20Sequence dataset
         """
-        # TODO: fill
-        train_sequences = ['aid052N1D1_tp1_stack1']
-        val_sequences = ['aid052N1D1_tp1_stack2']
+        train_sequences = SequenceHelper.get_sequence_names(f"{self._data_dir}/annotations/train.json")
+        val_sequences = SequenceHelper.get_sequence_names(f"{self._data_dir}/annotations/val.json")
 
         if split == "train":
             sequences = train_sequences

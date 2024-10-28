@@ -4,7 +4,7 @@ import cv2
 import pandas as pd
 import numpy as np
  
-DATA_ROOT = 'data/spine_dataset'
+DATA_ROOT = os.path.join("data", os.getenv('DATASET')) if os.getenv('DATASET') else "data/spine_dataset"
 VIS_THRESHOLD = 0.0
 
 
