@@ -1,10 +1,11 @@
 import json
 import os
+
 import cv2
 import pandas as pd
 import numpy as np
  
-DATA_ROOT = os.path.join("data", os.getenv('DATASET')) if os.getenv('DATASET') else "data/spine_dataset"
+DATA_ROOT = os.path.join("data", os.getenv('DATASET')) if os.getenv('DATASET') else "data/spine"
 VIS_THRESHOLD = 0.0
 
 
@@ -15,16 +16,14 @@ def generate_coco_from_spine(split_name='train_val', split='train_val'):
     annotations = {}
     annotations['type'] = 'instances'
     annotations['images'] = []
-    annotations['categories'] = [{
-        "supercategory": "spine",
-        "name": "spine",
-        "id": 1
-    }]
+    annotations['categories'] = [{"supercategory": "spine",
+                                  "name": "spine",
+                                  "id": 1}]
     annotations['annotations'] = []
     annotation_file = os.path.join(DATA_ROOT, f'annotations/{split_name}.json')
 
     # IMAGES
-    imgs_list_dir = os.listdir(os.path.join(DATA_ROOT, split))
+    imgs_list_dir = sorted(os.listdir(os.path.join(DATA_ROOT, split)))
     seqs_names = sorted(list(set([img.split('_layer')[0] for img in imgs_list_dir])))
     seqs_lengths = [len([img for img in imgs_list_dir if seq in img]) for seq in seqs_names]
     first_frame_image_id = 0
@@ -86,7 +85,6 @@ def generate_coco_from_spine(split_name='train_val', split='train_val'):
                 "seq": filename.split('_layer')[0],
                 "track_id": int(track_ids[i]),
             }
-            # TODO: add "seq", "track_id"
 
             annotation_id += 1
             annotations['annotations'].append(annotation)
