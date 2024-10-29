@@ -4,7 +4,7 @@ import cv2
 import pandas as pd
 import numpy as np
  
-DATA_ROOT = os.path.join("data", os.getenv('DATASET')) if os.getenv('DATASET') else "data/spine"
+DATA_ROOT = os.path.join("data", os.getenv('DATASET')) if os.getenv('DATASET') else "data/spine_dataset"
 VIS_THRESHOLD = 0.0
 
 
@@ -15,9 +15,11 @@ def generate_coco_from_spine(split_name='train_val', split='train_val'):
     annotations = {}
     annotations['type'] = 'instances'
     annotations['images'] = []
-    annotations['categories'] = [{"supercategory": "spine",
-                                  "name": "spine",
-                                  "id": 1}]
+    annotations['categories'] = [{
+        "supercategory": "spine",
+        "name": "spine",
+        "id": 1
+    }]
     annotations['annotations'] = []
     annotation_file = os.path.join(DATA_ROOT, f'annotations/{split_name}.json')
 
@@ -49,7 +51,7 @@ def generate_coco_from_spine(split_name='train_val', split='train_val'):
         os.path.splitext(img_dict['file_name'])[0]: img_dict['id']
         for img_dict in annotations['images']}
 
-    for split in ['train', 'val']:
+    for split in ['train', 'val', 'test']:
         if split not in split_name:
             continue
         annos_file = os.path.join(DATA_ROOT, f'annotations/{split}.csv')
@@ -101,7 +103,7 @@ def generate_coco_from_spine(split_name='train_val', split='train_val'):
 
 if __name__ == '__main__':
     # generate_coco_from_spine(split_name='train_val', split='train_val')
-    for split in ['train', 'val']:
+    for split in ['train', 'val', 'test']:
         generate_coco_from_spine(split_name=split, split=split)
 
     # coco_dir = os.path.join('data/CrowdHuman', 'train_val')
