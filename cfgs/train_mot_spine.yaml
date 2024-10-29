@@ -1,0 +1,12 @@
+dataset: mot_spine
+
+train_split: train
+val_split: val
+
+mot_path_train: data/spine
+mot_path_val: data/spine
+
+# resume: models/r50_deformable_detr_plus_iterative_bbox_refinement-checkpoint_hidden_dim_288.pth
+
+epochs: 50
+lr_drop: 10
