@@ -27,4 +27,5 @@ data/
 out_sbatch/
 *.sh
 checkpoints/
-
+dist/
+detections/

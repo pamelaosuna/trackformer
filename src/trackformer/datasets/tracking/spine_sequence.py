@@ -34,10 +34,10 @@ class SequenceHelper:
 class SpineSequence(Dataset):
     """SpineSequence, Custom Spine Dataset.
     """
-    data_folder = os.getenv('DATASET') if os.getenv('DATASET') else 'spine' 
-
     def __init__(self, root_dir: str = 'data', seq_name: Optional[str] = None, 
-                 vis_threshold: float = 0.0, img_transform: Namespace = None) -> None:
+                 vis_threshold: float = 0.0, img_transform: Namespace = None,
+                 subdir: str = '', partition: str = None, 
+                 from_img_dir: bool = False) -> None:
         """
         Args:
             seq_name (string): Sequence to take
@@ -49,25 +49,30 @@ class SpineSequence(Dataset):
         self._seq_name = seq_name
         self._vis_threshold = vis_threshold
 
-        self._data_dir = osp.join(root_dir, self.data_folder)
+        self._data_dir = osp.join(root_dir, subdir)
+        self._split = partition
+        self.from_img_dir = from_img_dir
 
-        self._train_seqs = SequenceHelper.get_sequence_names(f"{self._data_dir}/annotations/train.json")
-        self._val_seqs = SequenceHelper.get_sequence_names(f"{self._data_dir}/annotations/val.json")
+        assert partition is not None, \
+        f'Partition not set: {partition}'
+
+        assert os.path.exists(f"{self._data_dir}/annotations/{self._split}.json"), \
+        f'File with list of seqs does not exist: {self._data_dir}/annotations/{self._split}.json'
+
+        self._seqs = SequenceHelper.get_sequence_names(f"{self._data_dir}/annotations/{self._split}.json")
 
         self.transforms = Compose(make_coco_transforms('val', img_transform, overflow_boxes=True))
         self.data = []
         self.no_gt = True
 
-        assert (seq_name is not None) and (seq_name in self._train_seqs or self._val_seqs), \
-                'Sequence not in train nor val sequences : {}'.format(seq_name)
-        self._split = 'val' if seq_name in self._val_seqs else 'train'
-
-        self.gt = self.load_gt()
-        self.images = self.load_image_metadata()
-        self.annotations = self.load_annotations()
-        self.img_ids = self.load_img_ids()
-        # print(f'LEN annotations: {len(self.annotations)}')
+        if not from_img_dir:
+            self.gt = self.load_gt()
+            self.annotations = self.load_annotations()
+        else:
+            self.annotations = []
         
+        self.images = self.load_image_metadata()
+        self.img_ids = self.load_img_ids()
         self.data = self._sequence()
 
         self.no_gt = not osp.exists(self.get_gt_file_path())
@@ -102,15 +107,23 @@ class SpineSequence(Dataset):
 
     def _sequence(self) -> dict:
         total = []
-        img_dir = osp.join(self._data_dir,self._split)
+        img_dir = osp.join(self._data_dir, self._split)
 
-        boxes, visibility = self.get_track_boxes_and_visibility()
+        if not self.from_img_dir:
+            boxes, visibility = self.get_track_boxes_and_visibility()
 
-        total = [
-            {'gt': boxes[frame_id],
-             'im_path': osp.join(img_dir, self.img_ids[frame_id]),
-             'vis': visibility[frame_id]}
-            for frame_id in self.img_ids.keys()]
+            total = [
+                {'gt': boxes[frame_id],
+                'im_path': osp.join(img_dir, self.img_ids[frame_id]),
+                'vis': visibility[frame_id]}
+                for frame_id in self.img_ids.keys()]
+        else:
+            total = [
+                {'gt': {},
+                'im_path': osp.join(img_dir, self.img_ids[frame_id]),
+                'vis': []}
+                for frame_id in self.img_ids.keys()]
+
 
         return total
     
@@ -247,36 +260,3 @@ class SpineSequence(Dataset):
                 results[track_id][frame_id]['score'] = 1.0
 
         return results
-
-
-class SpineWrapper(Dataset):    
-    """A Wrapper for the SpineSequence class to return multiple sequences."""
-    def __init__(self, split: str, **kwargs) -> None:
-        """Initliazes all subset of the dataset.
-
-        Keyword arguments:
-        split -- the split of the dataset to use
-        kwargs -- kwargs for the MOT20Sequence dataset
-        """
-        train_sequences = SequenceHelper.get_sequence_names(f"{self._data_dir}/annotations/train.json")
-        val_sequences = SequenceHelper.get_sequence_names(f"{self._data_dir}/annotations/val.json")
-
-        if split == "train":
-            sequences = train_sequences
-        elif split == "val":
-            sequences = val_sequences
-        elif split == "all":
-            sequences = train_sequences + val_sequences
-            sequences = sorted(sequences)
-        else:
-            raise NotImplementedError(f"Split {split} not available.")
-
-        self._data = []
-        for seq in sequences:
-            self._data.append(SpineSequence(split=split, seq_name=seq, **kwargs))  
-        
-    def __len__(self) -> int:
-        return len(self._data)
-
-    def __getitem__(self, idx: int):
-        return self._data[idx]

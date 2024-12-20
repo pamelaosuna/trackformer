@@ -133,7 +133,7 @@ def train(args: Namespace) -> None:
 
     batch_sampler_train = torch.utils.data.BatchSampler(
         sampler_train, args.batch_size, drop_last=True)
-
+    
     data_loader_train = DataLoader(
         dataset_train,
         batch_sampler=batch_sampler_train,
