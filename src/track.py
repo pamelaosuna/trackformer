@@ -105,6 +105,10 @@ def main(seed, dataset_name, obj_detect_checkpoint_file, tracker_cfg,
     time_total = 0
     num_frames = 0
     mot_accums = []
+
+    # Convert to list if multiple sequences are given, separated by an space
+    # dataset_name = dataset_name.split(' ')
+    print(f'n seqs: {len(dataset_name)}')
     dataset = TrackDatasetFactory(
         dataset_name, root_dir=data_root_dir, img_transform=img_transform)
 

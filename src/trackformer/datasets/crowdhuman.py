@@ -8,6 +8,9 @@ from .coco import CocoDetection, make_coco_transforms
 
 
 def build_crowdhuman(image_set, args):
+    print('Building crowdhuman dataset...')
+    print(f'image_set: {image_set}')
+    print(args)
     root = Path(args.crowdhuman_path)
     assert root.exists(), f'provided COCO path {root} does not exist'
 

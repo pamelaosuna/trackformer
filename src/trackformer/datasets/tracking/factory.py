@@ -38,13 +38,22 @@ for split in ['TRAIN', 'TEST', 'ALL', '01', '02', '05', '06', '07', '09', '11', 
     name = f'MOTS20-{split}'
     DATASETS[name] = (
         lambda kwargs, split=split: MOTS20Wrapper(split, **kwargs))
-    
-# for split in ['val']:
-#     name = f'spine-{split}'
-#     DATASETS[name] = (
-#         lambda kwargs, split=split: SpineWrapper(split, **kwargs))
 
+custom_sequences_train = SequenceHelper.get_sequence_names(os.path.join("data", data_folder, "annotations", f"train.json"))
+custom_sequences_val = SequenceHelper.get_sequence_names(os.path.join("data", data_folder, "annotations", f"val.json"))
 custom_sequences_split = SequenceHelper.get_sequence_names(os.path.join("data", data_folder, "annotations", f"{partition}.json"))
+
+for name in custom_sequences_train:
+    DATASETS[name] = (lambda kwargs: [SpineSequence(seq_name=name, 
+                                                    partition='train',
+                                                    subdir=data_folder,
+                                                    **kwargs), ])
+
+for name in custom_sequences_val:
+    DATASETS[name] = (lambda kwargs: [SpineSequence(seq_name=name, 
+                                                    partition='val',
+                                                    subdir=data_folder,
+                                                    **kwargs), ])
 
 for name in custom_sequences_split:
     DATASETS[name] = (lambda kwargs: [SpineSequence(seq_name=name, 
@@ -71,6 +80,7 @@ class TrackDatasetFactory:
         """
         if isinstance(datasets, str):
             datasets = [datasets]
+            print(f"Single sequence given: {datasets}")
 
         self._data = None
         for dataset in datasets:
@@ -85,9 +95,9 @@ class TrackDatasetFactory:
             else:
                 self._data = ConcatDataset([self._data, [SpineSequence(
                                                 subdir=data_folder,
-                                                    seq_name=dataset, 
-                                                    partition=partition, 
-                                                    **kwargs), ]])
+                                                seq_name=dataset, 
+                                                partition=partition, 
+                                                **kwargs), ]])
 
     def __len__(self) -> int:
         return len(self._data)
