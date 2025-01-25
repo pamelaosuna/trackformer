@@ -121,7 +121,7 @@ start_epoch: 1
 eval_only: false
 eval_train: false
 num_workers: 0
-val_interval: 5
+val_interval: 1
 debug: false
 # epoch interval for model saving. if 0 only save last and best models
 save_model_interval: 5

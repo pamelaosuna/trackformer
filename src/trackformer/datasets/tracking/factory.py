@@ -39,27 +39,30 @@ for split in ['TRAIN', 'TEST', 'ALL', '01', '02', '05', '06', '07', '09', '11', 
     DATASETS[name] = (
         lambda kwargs, split=split: MOTS20Wrapper(split, **kwargs))
 
-custom_sequences_train = SequenceHelper.get_sequence_names(os.path.join("data", data_folder, "annotations", f"train.json"))
-custom_sequences_val = SequenceHelper.get_sequence_names(os.path.join("data", data_folder, "annotations", f"val.json"))
-custom_sequences_split = SequenceHelper.get_sequence_names(os.path.join("data", data_folder, "annotations", f"{partition}.json"))
+if partition == 'train' or partition == 'val':
+    custom_sequences_train = SequenceHelper.get_sequence_names(os.path.join("data", data_folder, "annotations", f"train.json"))
+    custom_sequences_val = SequenceHelper.get_sequence_names(os.path.join("data", data_folder, "annotations", f"val.json"))
 
-for name in custom_sequences_train:
-    DATASETS[name] = (lambda kwargs: [SpineSequence(seq_name=name, 
-                                                    partition='train',
-                                                    subdir=data_folder,
-                                                    **kwargs), ])
+    for name in custom_sequences_train:
+        DATASETS[name] = (lambda kwargs: [SpineSequence(seq_name=name, 
+                                                        partition='train',
+                                                        subdir=data_folder,
+                                                        **kwargs), ])
 
-for name in custom_sequences_val:
-    DATASETS[name] = (lambda kwargs: [SpineSequence(seq_name=name, 
-                                                    partition='val',
-                                                    subdir=data_folder,
-                                                    **kwargs), ])
+    for name in custom_sequences_val:
+        DATASETS[name] = (lambda kwargs: [SpineSequence(seq_name=name, 
+                                                        partition='val',
+                                                        subdir=data_folder,
+                                                        **kwargs), ])
 
-for name in custom_sequences_split:
-    DATASETS[name] = (lambda kwargs: [SpineSequence(seq_name=name, 
-                                                    partition=partition,
-                                                    subdir=data_folder,
-                                                    **kwargs), ])
+else:
+    custom_sequences_split = SequenceHelper.get_sequence_names(os.path.join("data", data_folder, "annotations", f"{partition}.json"))
+
+    for name in custom_sequences_split:
+        DATASETS[name] = (lambda kwargs: [SpineSequence(seq_name=name, 
+                                                        partition=partition,
+                                                        subdir=data_folder,
+                                                        **kwargs), ])
 
 DATASETS['DEMO'] = (lambda kwargs: [DemoSequence(**kwargs), ])
 
